@@ -1,0 +1,6 @@
+node_modules/
+dist/
+reports/
+tmp/
+fixtures/**/stream/big.ytd
+.superpowers/

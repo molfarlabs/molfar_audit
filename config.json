@@ -1,0 +1,10 @@
+{
+  "command": "audit",
+  "groups": { "manifest": true, "items": true, "config": true, "lua": true },
+  "ignore": [],
+  "items": { "extraFunctions": [] },
+  "lua": { "sensitiveFunctions": [] },
+  "web": { "enabled": true, "tokenTtlMinutes": 60, "baseUrl": "" },
+  "reports": { "keep": 10 },
+  "updateCheck": true
+}
