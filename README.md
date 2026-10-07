@@ -4,9 +4,11 @@
 
 `molfar_audit` is a free FiveM resource that checks your whole server from the server console and gives you a short summary there plus a full, filterable report in your browser. It runs only on the server and nothing is sent to players. Report data never leaves your server; the only outbound requests are the Cfx.re version check (CFG006) and the GitHub update check (both can fail silently, and the update check can be turned off).
 
-<!-- Screenshots: docs/screenshots/console.png and docs/screenshots/report.png -->
+![Console summary](docs/screenshots/console.png)
 
-On a fresh Qbox recipe server it checks ~110 resources and ~600 Lua files in about 5 seconds, never blocking the server for more than ~100 ms at a time.
+![Web report](docs/screenshots/report.png)
+
+On a fresh Qbox recipe server it checks ~110 resources and ~600 Lua files in about 5 seconds, and its longest continuous piece of work stays around 50 ms, so players do not feel it.
 
 ## What it checks
 
