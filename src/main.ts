@@ -11,8 +11,8 @@ import { runRules } from './report/run';
 import { saveReport } from './report/store';
 import { ALL_RULES } from './rules/index';
 import { checkUpdate } from './update';
-import { startLagMonitor } from './util/lag';
 import { fetchJson } from './util/net';
+import { idle, startBlockMeter } from './util/yield';
 
 const RESOURCE = GetCurrentResourceName();
 const ROOT = GetResourcePath(RESOURCE);
@@ -62,13 +62,13 @@ async function audit(args: string[]): Promise<void> {
   running = true;
   const config = loadConfig();
   const started = Date.now();
-  const stopLag = startLagMonitor();
+  const stopMeter = startBlockMeter();
   console.log(`${TAG} Audit started…`);
   try {
     const snapshot = await buildSnapshot(fxNatives(), { fetchJson, now: new Date() });
     const findings = await runRules(ALL_RULES, snapshot, { config }, groups);
-    const report = buildReport(findings, snapshot, config, { version: VERSION, durationMs: Date.now() - started, maxBlockMs: stopLag(), now: new Date() });
-    const savedAs = await saveReport(join(ROOT, 'reports'), report, config.reports.keep, new Date());
+    const report = buildReport(findings, snapshot, config, { version: VERSION, durationMs: Date.now() - started, maxBlockMs: stopMeter(), now: new Date() });
+    const savedAs = await idle(saveReport(join(ROOT, 'reports'), report, config.reports.keep, new Date()));
     let link: string | null = null;
     const html = loadHtml();
     if (config.web.enabled && html) {
@@ -80,7 +80,7 @@ async function audit(args: string[]): Promise<void> {
     }
     for (const line of formatConsole(report, link, config.web.tokenTtlMinutes, savedAs)) console.log(line);
   } catch (e) {
-    stopLag();
+    stopMeter();
     console.log(`^1[molfar_audit] Audit failed: ${(e as Error).stack ?? e}^7`);
   } finally {
     running = false;

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { parseLua } from '../lua/parse';
 import { stringValue, walk, type LuaNode } from '../lua/walk';
 import { resolveEntry, SCRIPT_KEYS } from '../manifest/resolve';
-import { createYielder } from '../util/yield';
+import { createYielder, idle } from '../util/yield';
 import { UNSET, type ItemDef, type LuaFile, type ResourceInfo, type ServerSnapshot, type Side } from '../snapshot';
 import { parseMysqlConnection } from '../util/secrets';
 import type { Natives } from './natives';
@@ -125,7 +125,7 @@ export async function buildSnapshot(nat: Natives, deps: { fetchJson: (url: strin
   return {
     takenAt: deps.now.toISOString(),
     serverBuild: parseBuild(convars.version === UNSET ? '' : convars.version),
-    recommendedBuild: await recommended(deps.fetchJson),
+    recommendedBuild: await idle(recommended(deps.fetchJson)),
     resources,
     convars,
     db: { user: conn.user, passwordEmpty: conn.password === null ? null : conn.password === '' },

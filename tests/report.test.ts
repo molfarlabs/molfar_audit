@@ -8,7 +8,6 @@ import { runRules } from '../src/report/run';
 import { saveReport } from '../src/report/store';
 import { configRules } from '../src/rules/config';
 import { GROUPS, perFileRule, type Finding, type Rule } from '../src/rules/types';
-import { startLagMonitor } from '../src/util/lag';
 import { DEFAULT_CONFIG } from '../src/config';
 import { ctx, lua, res, snap, withLua } from './helpers';
 
@@ -107,16 +106,5 @@ describe('saveReport', () => {
     for (const d of ['2026-10-01T10:00:00Z', '2026-10-02T10:00:00Z', '2026-10-03T10:00:00Z']) names.push(await saveReport(dir, r, 2, new Date(d)));
     expect(names[2]).toMatch(/^2026-10-03_\d{6}\.json$/);
     expect((await readdir(dir)).sort()).toEqual(names.slice(1).sort());
-  });
-});
-
-describe('startLagMonitor', () => {
-  it('measures event loop blocking', async () => {
-    const stop = startLagMonitor();
-    await new Promise((r) => setTimeout(r, 30));
-    const end = Date.now() + 80;
-    while (Date.now() < end) { /* block */ }
-    await new Promise((r) => setTimeout(r, 30));
-    expect(stop()).toBeGreaterThanOrEqual(50);
   });
 });
