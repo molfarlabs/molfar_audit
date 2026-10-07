@@ -30,6 +30,25 @@ async function load() {
   return { doc: dom.window.document, window: dom.window as any, requested: () => requested };
 }
 
+const repeated = {
+  ...report,
+  findings: [1, 2, 3].map((line) => ({ rule: 'LUA003', severity: 'warning', group: 'lua', resource: 'chat', file: 'sv_chat.lua', line, message: 'RegisterServerEvent is deprecated', why: 'w', fix: 'f' })),
+};
+
+describe('report.html grouping', () => {
+  it('shows identical findings in one file as one card listing the lines', async () => {
+    const dom = new JSDOM(html, {
+      url: 'http://server.test/molfar_audit/?t=abc123',
+      runScripts: 'dangerously',
+      beforeParse(window) { (window as any).fetch = async () => ({ ok: true, status: 200, json: async () => repeated }); },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    const cards = dom.window.document.querySelectorAll('.finding');
+    expect(cards).toHaveLength(1);
+    expect(cards[0].querySelector('.where')?.textContent).toBe('chat/sv_chat.lua:1,2,3');
+  });
+});
+
 describe('report.html', () => {
   it('fetches report.json with the token from the page folder', async () => {
     const { requested } = await load();

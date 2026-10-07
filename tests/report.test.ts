@@ -85,6 +85,16 @@ describe('formatConsole', () => {
   });
 });
 
+describe('formatConsole grouping', () => {
+  it('collapses identical findings in one file into one line with all line numbers', () => {
+    const same = (line: number) => f({ rule: 'LUA003', resource: 'chat', file: 'sv_chat.lua', line, message: 'RegisterServerEvent is deprecated' });
+    const r = buildReport([same(1), same(2), same(3), f({ resource: 'other', message: 'different' })], snap(), DEFAULT_CONFIG, META);
+    const out = formatConsole(r, null, 60, 'x.json');
+    expect(out.filter((l) => l.includes('RegisterServerEvent'))).toHaveLength(1);
+    expect(out.join('\n')).toContain('chat/sv_chat.lua:1,2,3');
+  });
+});
+
 describe('saveReport', () => {
   it('writes JSON files and keeps only the newest N', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'mfa-'));

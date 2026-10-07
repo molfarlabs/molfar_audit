@@ -59,6 +59,7 @@ footer a{color:var(--muted)}
   'use strict';
   var LEVELS = ['critical', 'warning', 'possible', 'info'];
   var report = null;
+  var groups = [];
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -88,15 +89,24 @@ footer a{color:var(--muted)}
     var names = {};
     data.findings.forEach(function (f) { if (f.resource) names[f.resource] = true; });
     Object.keys(names).sort().forEach(function (n) { var o = el('option', null, n); o.value = n; $('resource').appendChild(o); });
+    var byKey = {};
+    data.findings.forEach(function (f) {
+      var key = [f.rule, f.resource || '', f.file || '', f.message].join('\u0000');
+      var g = byKey[key];
+      if (g) { if (f.line) g.lines.push(f.line); return; }
+      g = byKey[key] = { f: f, lines: f.line ? [f.line] : [] };
+      groups.push(g);
+    });
     var list = $('findings');
-    data.findings.forEach(function (f, i) { list.appendChild(card(f, i)); });
+    groups.forEach(function (g, i) { list.appendChild(card(g, i)); });
     ['severity', 'group', 'resource'].forEach(function (id) { $(id).addEventListener('change', applyFilters); });
     $('search').addEventListener('input', applyFilters);
     $('empty').textContent = data.findings.length ? 'No findings match the filters.' : 'No problems found.';
     applyFilters();
   }
 
-  function card(f, i) {
+  function card(g, i) {
+    var f = g.f;
     var c = el('article', 'finding ' + f.severity);
     c.dataset.index = String(i);
     var head = el('div', 'head');
@@ -104,7 +114,7 @@ footer a{color:var(--muted)}
     head.appendChild(el('strong', null, f.rule));
     head.appendChild(el('span', null, f.message));
     c.appendChild(head);
-    var where = [f.resource, f.file].filter(Boolean).join('/') + (f.line ? ':' + f.line : '');
+    var where = [f.resource, f.file].filter(Boolean).join('/') + (g.lines.length ? ':' + g.lines.join(',') : '');
     if (where) c.appendChild(el('div', 'where', where));
     c.appendChild(el('p', 'why', f.why));
     c.appendChild(el('p', 'fix', f.fix));
@@ -123,7 +133,7 @@ footer a{color:var(--muted)}
   function applyFilters() {
     var sev = $('severity').value, grp = $('group').value, res = $('resource').value, q = $('search').value.trim().toLowerCase(), shown = 0;
     Array.prototype.forEach.call(document.querySelectorAll('.finding'), function (c) {
-      var f = report.findings[Number(c.dataset.index)];
+      var f = groups[Number(c.dataset.index)].f;
       var ok = (!sev || f.severity === sev) && (!grp || f.group === grp) && (!res || f.resource === res) && (!q || c.dataset.search.indexOf(q) !== -1);
       c.hidden = !ok;
       if (ok) shown++;
