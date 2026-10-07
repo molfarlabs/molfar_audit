@@ -46,6 +46,10 @@ describe('buildReport', () => {
     expect(r.summary.bySeverity).toEqual({ critical: 1, warning: 1, possible: 0, info: 1 });
     expect(r.summary.maxBlockMs).toBe(12);
   });
+  it('within a level puts config, items and lua before manifest hygiene', () => {
+    const r = buildReport([f({ group: 'manifest', resource: 'a' }), f({ rule: 'ITM001', group: 'items', resource: 'z' }), f({ rule: 'LUA003', group: 'lua', resource: 'b' })], snap(), DEFAULT_CONFIG, META);
+    expect(r.findings.map((x) => x.group)).toEqual(['items', 'lua', 'manifest']);
+  });
   it('applies config ignores by rule, resource glob and category path', () => {
     const s = snap({ resources: [res({ name: 'qbx_core', category: '[qbx]' }), res({ name: 'tool', category: '[standalone]' }), res({ name: 'keep' })] });
     const config = { ...DEFAULT_CONFIG, ignore: [{ rule: 'LUA002' }, { resource: 'qbx_*' }, { path: '[standalone]/**' }] };

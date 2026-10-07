@@ -43,4 +43,5 @@ export interface ServerSnapshot {
   itemImages: Set<string>; // lower-cased file names in ox_inventory/web/images
   lua: Map<string, LuaFile>;
   unreadableFiles: number;
+  skippedLarge: string[]; // 'resource/rel' of Lua files too large to parse without hitching the server
 }

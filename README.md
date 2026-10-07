@@ -53,7 +53,7 @@ Levels: 🔴 **critical** (breaks things or is dangerous) · 🟡 **warning** (w
 | LUA001 | 🔵 | A server net event passes a client value straight into `AddMoney` / `AddItem` / `SetJob` without any check |
 | LUA002 | 🔵 | A client loop runs every frame with only `Wait(0)` (loops that must run every frame are recognised) |
 | LUA003 | 🟡 | Deprecated APIs: `RegisterServerEvent`, `esx:getSharedObject`, `QBCore:GetObject`, looping over `GetPlayerIdentifiers` |
-| LUA004 | ⚪ | Lua files that could not be analysed |
+| LUA004 | ⚪ | Lua files that could not be analysed (including data files over 256 KB, skipped to keep the server smooth) |
 
 CfxLua syntax is supported: backtick hashes, `+=` and friends, `?.`, `<const>`/`<close>`, `/* */` comments, `local a, b in t`. Escrowed files are skipped.
 

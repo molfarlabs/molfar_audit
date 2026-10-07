@@ -11,6 +11,10 @@ import { collectResources } from './resources';
 
 export const CONVARS = ['version', 'onesync', 'sv_scriptHookAllowed', 'mysql_connection_string', 'sv_enforceGameBuild', 'rcon_password', 'sv_master1', 'steam_webApiKey', 'sv_hostname', 'inventory:imagepath'];
 
+// Parsing is one synchronous call; above this size it can block the server for >100 ms.
+// Files this large are data tables (emotes, tattoos, vehicles), not logic.
+export const MAX_LUA_BYTES = 256 * 1024;
+
 const SIDE: Record<(typeof SCRIPT_KEYS)[number], Side> = { client_script: 'client', server_script: 'server', shared_script: 'shared' };
 
 export function parseBuild(version: string): number | null {
@@ -72,21 +76,27 @@ function collectItems(nat: Natives, resources: ResourceInfo[], overrides: Map<st
   return items;
 }
 
-async function collectLua(resources: ResourceInfo[]): Promise<{ lua: Map<string, LuaFile>; unreadable: number }> {
+async function collectLua(resources: ResourceInfo[]): Promise<{ lua: Map<string, LuaFile>; unreadable: number; skippedLarge: string[] }> {
   const byName = new Map(resources.map((r) => [r.name, r]));
   const lua = new Map<string, LuaFile>();
+  const skippedLarge: string[] = [];
   let unreadable = 0;
   const tick = createYielder();
   for (const r of resources) {
     if (r.state !== 'started' && r.state !== 'starting') continue;
     const escrowed = new Set(r.files.filter((f) => f.escrowed).map((f) => f.rel));
+    const sizes = new Map(r.files.map((f) => [f.rel, f.size]));
     for (const key of SCRIPT_KEYS) {
       for (const raw of r.manifest[key] ?? []) {
         const entry = resolveEntry(key, raw, r, byName);
         if (entry.targetResource !== r.name) continue;
         for (const rel of entry.matches) {
           const id = `${r.name}/${rel}`;
-          if (!rel.endsWith('.lua') || escrowed.has(rel) || lua.has(id)) continue;
+          if (!rel.endsWith('.lua') || escrowed.has(rel) || lua.has(id) || skippedLarge.includes(id)) continue;
+          if ((sizes.get(rel) ?? 0) > MAX_LUA_BYTES) {
+            skippedLarge.push(id);
+            continue;
+          }
           let src: string;
           try {
             src = readFileSync(join(r.path, rel), 'utf8');
@@ -101,7 +111,7 @@ async function collectLua(resources: ResourceInfo[]): Promise<{ lua: Map<string,
       }
     }
   }
-  return { lua, unreadable };
+  return { lua, unreadable, skippedLarge };
 }
 
 export async function buildSnapshot(nat: Natives, deps: { fetchJson: (url: string) => Promise<any>; now: Date }): Promise<ServerSnapshot> {
@@ -111,7 +121,7 @@ export async function buildSnapshot(nat: Natives, deps: { fetchJson: (url: strin
   const conn = convars.mysql_connection_string === UNSET ? { user: null, password: null } : parseMysqlConnection(convars.mysql_connection_string);
   const ox = resources.find((r) => r.name === 'ox_inventory');
   const itemImages = new Set((ox?.files ?? []).filter((f) => f.rel.startsWith('web/images/')).map((f) => f.rel.slice('web/images/'.length).toLowerCase()));
-  const { lua, unreadable: unreadableLua } = await collectLua(resources);
+  const { lua, unreadable: unreadableLua, skippedLarge } = await collectLua(resources);
   return {
     takenAt: deps.now.toISOString(),
     serverBuild: parseBuild(convars.version === UNSET ? '' : convars.version),
@@ -123,5 +133,6 @@ export async function buildSnapshot(nat: Natives, deps: { fetchJson: (url: strin
     itemImages,
     lua,
     unreadableFiles: unreadable + unreadableLua,
+    skippedLarge,
   };
 }

@@ -26,6 +26,9 @@ export interface Report {
   markdown: string;
 }
 
+// Within a level: things that break the server first, manifest hygiene last.
+const GROUP_ORDER: Record<Group, number> = { config: 0, items: 1, lua: 2, manifest: 3 };
+
 function ignoredByConfig(f: Finding, entries: IgnoreEntry[], categories: Map<string, string>): boolean {
   const path = [categories.get(f.resource ?? '') ?? '', f.resource, f.file].filter(Boolean).join('/');
   return entries.some(
@@ -53,6 +56,7 @@ export function buildReport(raw: Finding[], s: ServerSnapshot, config: AuditConf
   findings.sort(
     (a, b) =>
       SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] ||
+      GROUP_ORDER[a.group] - GROUP_ORDER[b.group] ||
       (a.resource ?? '').localeCompare(b.resource ?? '') ||
       (a.file ?? '').localeCompare(b.file ?? '') ||
       (a.line ?? 0) - (b.line ?? 0),

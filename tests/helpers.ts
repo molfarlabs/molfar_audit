@@ -30,6 +30,7 @@ export function snap(p: Partial<ServerSnapshot> = {}): ServerSnapshot {
     itemImages: new Set(),
     lua: new Map(),
     unreadableFiles: 0,
+    skippedLarge: [],
     ...p,
   };
 }

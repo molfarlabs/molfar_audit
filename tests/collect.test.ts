@@ -20,6 +20,7 @@ async function fakeServer() {
   await put(shop, 'server/main.lua', 'local = broken');
   await put(shop, 'server/locked.lua', Buffer.from('FXAP\u0000\u0001binary'));
   await put(shop, 'node_modules/x/index.js', 'x');
+  await put(shop, 'client/huge.lua', 'local t = {' + ' 1,'.repeat(100_000) + ' }');
   await put(ox, 'web/images/water.png', 'png');
   await put(ox, 'web/images/Drum.PNG', 'png');
   await put(ox, 'data/weapons.lua', "return { Components = { ['at_clip_drum_rifle'] = { label = 'Drum', client = { image = 'at_clip_drum.png', component = { `X` } } } } }");
@@ -54,7 +55,7 @@ describe('collectResources', () => {
     const { resources } = await collectResources(nat);
     const shop = resources.find((r) => r.name === 'shop')!;
     expect(shop.category).toBe('[jobs]');
-    expect(shop.files.map((f) => f.rel).sort()).toEqual(['client/main.lua', 'fxmanifest.lua', 'server/locked.lua', 'server/main.lua']);
+    expect(shop.files.map((f) => f.rel).sort()).toEqual(['client/huge.lua', 'client/main.lua', 'fxmanifest.lua', 'server/locked.lua', 'server/main.lua']);
     expect(shop.files.find((f) => f.rel === 'server/locked.lua')?.escrowed).toBe(true);
   });
 });
@@ -77,6 +78,7 @@ describe('buildSnapshot', () => {
     expect(s.items).toEqual({ water: { label: 'Water' }, burger: { label: 'Burger', image: 'nui://x/b.png' }, at_clip_drum_rifle: { label: 'Drum', image: 'at_clip_drum.png' } });
     expect([...s.itemImages].sort()).toEqual(['drum.png', 'water.png']);
     expect([...s.lua.keys()].sort()).toEqual(['shop/client/main.lua', 'shop/server/main.lua']);
+    expect(s.skippedLarge).toEqual(['shop/client/huge.lua']);
     expect(s.lua.get('shop/client/main.lua')?.side).toBe('client');
     expect(s.lua.get('shop/server/main.lua')?.error).toBeTruthy();
   });

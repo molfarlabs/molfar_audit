@@ -81,4 +81,9 @@ describe('LUA004 unparsable files', () => {
     expect(f[0].details?.[0]).toMatch(/^a\/broken\.lua: /);
     expect(run('LUA004', [server('local ok = 1')])).toEqual([]);
   });
+  it('also lists large data files that were skipped', () => {
+    const f = rule('LUA004').run(snap({ skippedLarge: ['emotes/shared/dance.lua'] }), ctx());
+    expect(f).toHaveLength(1);
+    expect(f[0].details?.[0]).toMatch(/^emotes\/shared\/dance\.lua: skipped/);
+  });
 });

@@ -144,13 +144,17 @@ const LUA004: Rule = {
   group: 'lua',
   run(s) {
     const broken = [...s.lua.values()].filter((f) => f.error !== null);
-    if (!broken.length) return [];
+    const total = broken.length + s.skippedLarge.length;
+    if (!total) return [];
     return [{
       rule: 'LUA004', severity: 'info', group: 'lua',
-      message: `${broken.length} Lua files could not be analysed`,
-      why: 'The parser could not read them — either a real syntax error or Lua syntax the auditor does not support yet.',
+      message: `${total} Lua files could not be analysed`,
+      why: 'The parser could not read them (a real syntax error or Lua syntax the auditor does not support yet), or they are large data files skipped to keep the server smooth.',
       fix: 'Check the listed files; if the server loads them fine, report it at https://github.com/molfarlabs/molfar_audit/issues.',
-      details: broken.slice(0, 100).map((f) => `${f.resource}/${f.rel}: ${f.error}`),
+      details: [
+        ...broken.slice(0, 100).map((f) => `${f.resource}/${f.rel}: ${f.error}`),
+        ...s.skippedLarge.slice(0, 100).map((id) => `${id}: skipped (larger than 256 KB, usually a data table)`),
+      ],
     }];
   },
 };
